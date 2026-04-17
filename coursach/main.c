@@ -16,10 +16,13 @@ typedef struct {
 	int dice[2];
 	bool used_dice[2];
 	bool head_used;
+	bool first_move_w;
+	bool first_move_b;
 	int aviable_moves[60][3];		//нач. позиция, кон. позиция, номер кубика
 }table_s;
 
 table_s table;
+
 
 void reset_table() {
 	table.head_used = false;
@@ -33,6 +36,8 @@ void reset_table() {
 }
 
 void init_table() {
+	table.first_move_w = true;
+	table.first_move_b = true;
 	table.desk[0] = 15;
 	table.desk[12] = -15;
 	table.cur_player = WHITE;
@@ -124,14 +129,24 @@ int all_moves() {
 void make_move(int n) {
 	table.desk[table.aviable_moves[n - 1][0]] -= table.cur_player == WHITE ? 1 : -1;
 	table.desk[table.aviable_moves[n - 1][1]] += table.cur_player == WHITE ? 1 : -1;
-	table.used_dice[table.aviable_moves[n - 1][2]] = true;
-	if ((table.cur_player == WHITE && table.aviable_moves[n - 1][0] == 0) || (table.cur_player == BLACK && table.aviable_moves[n - 1][0] == 12))
-		table.head_used = true;
+	if (table.dice[0] != table.dice[1])
+		table.used_dice[table.aviable_moves[n - 1][2]] = true;
+	if ((table.cur_player == WHITE && table.aviable_moves[n - 1][0] == 0) || (table.cur_player == BLACK && table.aviable_moves[n - 1][0] == 12)) {
+		if (table.cur_player == WHITE && table.first_move_w && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
+			table.first_move_w = false;
+		}
+		else if (table.cur_player == BLACK && table.first_move_b && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
+			table.first_move_b = false;
+		}
+		else {
+			table.head_used = true;
+		}
+	}
 }
 
 void print_moves(int n) {
 	if (n == 0)
-		printf("Нет вохможных ходов:(\n");
+		printf("Нет возможных ходов:(\n");
 	else {
 		printf("Возможные ходы:\n");
 		for (int i = 0; i < n; i++) {
@@ -155,17 +170,24 @@ int main() {
 	print_desk();
 
 	char* cur_player_move;
+	int move_cnt;
 	while (1) {
 		reset_table();
 		cur_player_move = table.cur_player == WHITE ? "Белый" : "Черный";
 		printf("Ход игрока %s\n", cur_player_move);
 		roll_dice();
 		printf("Выпало: %d %d\n", table.dice[0], table.dice[1]);
-		for (int i = 0; i < 2; i++) {
+		move_cnt = table.dice[0] == table.dice[1] ? 4 : 2;
+		for (int i = 0; i < move_cnt; i++) {
 			int moves_count = all_moves();
 			print_moves(moves_count);
 		}
 		getchar();
+
+		if (table.cur_player == WHITE)
+			table.first_move_w = false;
+		if (table.cur_player == BLACK)
+			table.first_move_b = false;
 		table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
 	}
 
