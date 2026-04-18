@@ -237,8 +237,8 @@ void print_moves(int n) {
 		}
 		printf("Введите номер желаемого хода: ");
 
-		int cur_move = 1;
-		//scanf("%d", &cur_move);
+		int cur_move;
+		scanf("%d", &cur_move);
 		make_move(cur_move);
 		print_desk();
 	}
