@@ -87,6 +87,67 @@ bool all_home() {	//все фишки для текущего цвета в до
 	return true;
 }
 
+bool check_fence(int pos) {
+	int cnt = 1;
+	int calc_cur_pos;
+	for (int i = 1; i <= 5; i++) {
+		calc_cur_pos = pos + i;
+		if ((table.cur_player == WHITE && table.desk[(calc_cur_pos) % 24] <= 0) || (table.cur_player == BLACK && table.desk[(calc_cur_pos) % 24] >= 0)) {
+			break;
+		}
+		cnt++;
+	}
+	for (int i = 1; i <= 5; i++) {
+		int calc_cur_pos = pos - i;
+		if (calc_cur_pos < 0)
+			calc_cur_pos += 24;
+		if ((table.cur_player == WHITE && table.desk[calc_cur_pos] <= 0) || (table.cur_player == BLACK && table.desk[calc_cur_pos] >= 0)) {
+			break;
+		}
+		cnt++;
+	}
+	if (cnt >= 6) {
+		int end_block = pos;
+		table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
+		if (all_home()) {
+			table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
+			return true;
+		}
+		table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
+
+		if (table.cur_player == WHITE) {
+			for (int i = 1; i < 24; i++) {
+				if (table.desk[(pos + i) % 24] <= 0) {
+					end_block = pos + i;
+					break;
+				}
+			}
+			for (int i = end_block + 1; i % 24 != 12; i++) {
+				if (table.desk[i % 24] < 0) {
+					return true;
+				}
+			}
+		}
+
+		else if (table.cur_player == BLACK) {
+			for (int i = 1; i < 24; i++) {
+				if (table.desk[(pos + i) % 24] >= 0) {
+					end_block = pos + i;
+					break;
+				}
+			}
+			for (int i = end_block + 1; i % 24 != 0; i++) {
+				if (table.desk[i % 24] > 0) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+	return true;
+}
+
 int all_moves() {
 	int count_moves = 0;
 	int limit = 2;
@@ -100,10 +161,12 @@ int all_moves() {
 			if (table.cur_player == WHITE) {
 				for (int pos = 0; pos < 24; pos++) {
 					if (table.desk[pos] > 0 && table.desk[pos + table.dice[move_i]] >= 0 && (pos + table.dice[move_i]) < 24 && (!(pos == 0 && table.head_used))) {
-						table.aviable_moves[count_moves][0] = pos;
-						table.aviable_moves[count_moves][1] = pos + table.dice[move_i];
-						table.aviable_moves[count_moves][2] = move_i;
-						count_moves++;
+						if (check_fence(pos+table.dice[move_i])) {
+							table.aviable_moves[count_moves][0] = pos;
+							table.aviable_moves[count_moves][1] = pos + table.dice[move_i];
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+						}
 					}
 				}
 			}
@@ -115,10 +178,12 @@ int all_moves() {
 						if (des_move >= 24)
 							des_move -= 24;
 						if (table.desk[des_move] <= 0 && !(pos >= 0 && pos < 12 && des_move > 11)) {
-							table.aviable_moves[count_moves][0] = pos;
-							table.aviable_moves[count_moves][1] = des_move;
-							table.aviable_moves[count_moves][2] = move_i;
-							count_moves++;
+							if (check_fence(des_move)) {
+								table.aviable_moves[count_moves][0] = pos;
+								table.aviable_moves[count_moves][1] = des_move;
+								table.aviable_moves[count_moves][2] = move_i;
+								count_moves++;
+							}
 						}
 					}
 				}
