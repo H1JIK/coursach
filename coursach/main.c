@@ -99,7 +99,7 @@ int all_moves() {
 		if (!all_home()) {
 			if (table.cur_player == WHITE) {
 				for (int pos = 0; pos < 24; pos++) {
-					if (table.desk[pos] > 0 && table.desk[pos + table.dice[move_i]] >= 0 && (pos + table.dice[move_i]) < 24) {
+					if (table.desk[pos] > 0 && table.desk[pos + table.dice[move_i]] >= 0 && (pos + table.dice[move_i]) < 24 && (!(pos == 0 && table.head_used))) {
 						table.aviable_moves[count_moves][0] = pos;
 						table.aviable_moves[count_moves][1] = pos + table.dice[move_i];
 						table.aviable_moves[count_moves][2] = move_i;
@@ -136,7 +136,7 @@ int all_moves() {
 				}
 				else {
 					bool find_flag = false;
-					for (int i = cur_pos; i >= 18; i--) {
+					for (int i = cur_pos; i >= 18; i--) {	//поиск хода внутри дома
 						if (table.desk[i] > 0 && table.desk[i + table.dice[move_i]] >= 0 && (i + table.dice[move_i]) < 24) {
 							table.aviable_moves[count_moves][0] = i;
 							table.aviable_moves[count_moves][1] = i + table.dice[move_i];
@@ -145,10 +145,47 @@ int all_moves() {
 							find_flag = 1;
 						}
 					}
-					if (!find_flag) {
+					if (!find_flag) {	//выброс с самого близкого занятого пункта
 						int far_cell = -1;
 						for (int i = 23; i >= 18; i--) {
 							if (table.desk[i] > 0) {
+								far_cell = i;
+								break;
+							}
+						}
+						if (far_cell != -1) {
+							table.aviable_moves[count_moves][0] = far_cell;
+							table.aviable_moves[count_moves][1] = -1;
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+						}
+					}
+				}
+			}
+			else if (table.cur_player == BLACK) {
+				int cur_pos = 12 - table.dice[move_i];
+				if (table.desk[cur_pos] < 0) {
+					//выбрасываем
+					table.aviable_moves[count_moves][0] = cur_pos;
+					table.aviable_moves[count_moves][1] = -1;
+					table.aviable_moves[count_moves][2] = move_i;
+					count_moves++;
+				}
+				else {
+					bool find_flag = false;
+					for (int i = cur_pos; i >= 6; i--) {	//поиск хода внутри дома
+						if (table.desk[i] < 0 && table.desk[i + table.dice[move_i]] <= 0 && (i + table.dice[move_i]) < 12) {
+							table.aviable_moves[count_moves][0] = i;
+							table.aviable_moves[count_moves][1] = i + table.dice[move_i];
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+							find_flag = 1;
+						}
+					}
+					if (!find_flag) {	//выброс с самого близкого занятого пункта
+						int far_cell = -1;
+						for (int i = 11; i >= 6; i--) {
+							if (table.desk[i] < 0) {
 								far_cell = i;
 								break;
 							}
@@ -200,14 +237,35 @@ void print_moves(int n) {
 		}
 		printf("Введите номер желаемого хода: ");
 
-		int cur_move;
-		scanf("%d", &cur_move);
+		int cur_move = 1;
+		//scanf("%d", &cur_move);
 		make_move(cur_move);
 		print_desk();
 	}
 }
 
-
+bool is_win() {
+	if (all_home()) {
+		if (table.cur_player == WHITE) {
+			for (int i = 18; i < 24; i++) {
+				if (table.desk[i] > 0) {
+					return false;
+				}
+			}
+		}
+		else if (table.cur_player == BLACK) {
+			for (int i = 6; i < 12; i++) {
+				if (table.desk[i] < 0) {
+					return false;
+				}
+			}
+		}
+	}
+	else {
+		return false;
+	}
+	return true;
+}
 
 int main() {
 	char* locale = setlocale(LC_ALL, "");
@@ -228,15 +286,21 @@ int main() {
 			int moves_count = all_moves();
 			print_moves(moves_count);
 		}
-		getchar();
 
 		if (table.cur_player == WHITE)
 			table.first_move_w = false;
 		if (table.cur_player == BLACK)
 			table.first_move_b = false;
-		table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
-	}
 
+		if (is_win()) {		//ПОБЕДА
+			printf("Поздравляем! Игрок %s выиграл!", cur_player_move);
+			exit(0);
+		}
+
+		table.cur_player = table.cur_player == WHITE ? BLACK : WHITE;
+		getchar();
+
+	}
 
 
 	return 0;
