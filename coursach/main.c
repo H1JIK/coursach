@@ -96,28 +96,69 @@ int all_moves() {
 	for (int move_i = 0; move_i < limit; move_i++) {
 		if (table.used_dice[move_i])
 			continue;
-		if (table.cur_player == WHITE) {
-			for (int pos = 0; pos < 24; pos++) {
-				if (table.desk[pos] > 0 && table.desk[pos + table.dice[move_i]] >= 0 && (!(pos == 0 && table.head_used))) {
-					table.aviable_moves[count_moves][0] = pos;
-					table.aviable_moves[count_moves][1] = pos + table.dice[move_i];
-					table.aviable_moves[count_moves][2] = move_i;
-					count_moves++;
+		if (!all_home()) {
+			if (table.cur_player == WHITE) {
+				for (int pos = 0; pos < 24; pos++) {
+					if (table.desk[pos] > 0 && table.desk[pos + table.dice[move_i]] >= 0 && (pos + table.dice[move_i]) < 24) {
+						table.aviable_moves[count_moves][0] = pos;
+						table.aviable_moves[count_moves][1] = pos + table.dice[move_i];
+						table.aviable_moves[count_moves][2] = move_i;
+						count_moves++;
+					}
+				}
+			}
+			else if (table.cur_player == BLACK) {
+				int des_move;
+				for (int pos = 0; pos < 24; pos++) {
+					if (table.desk[pos] < 0 && (!(pos == 12 && table.head_used))) {
+						des_move = pos + table.dice[move_i];
+						if (des_move >= 24)
+							des_move -= 24;
+						if (table.desk[des_move] <= 0 && !(pos >= 0 && pos < 12 && des_move > 11)) {
+							table.aviable_moves[count_moves][0] = pos;
+							table.aviable_moves[count_moves][1] = des_move;
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+						}
+					}
 				}
 			}
 		}
-		else if (table.cur_player == BLACK) {
-			int des_move;
-			for (int pos = 0; pos < 24; pos++) {
-				if (table.desk[pos] < 0 && (!(pos == 12 && table.head_used))) {
-					des_move = pos + table.dice[move_i];
-					if (des_move >= 24)
-						des_move -= 24;
-					if (table.desk[des_move] <= 0) {
-						table.aviable_moves[count_moves][0] = pos;
-						table.aviable_moves[count_moves][1] = des_move;
-						table.aviable_moves[count_moves][2] = move_i;
-						count_moves++;
+		else {	//когда фишки в доме
+			if (table.cur_player == WHITE) {
+				int cur_pos = 24 - table.dice[move_i];
+				if (table.desk[cur_pos] > 0) {
+					//выбрасываем
+					table.aviable_moves[count_moves][0] = cur_pos;
+					table.aviable_moves[count_moves][1] = -1;
+					table.aviable_moves[count_moves][2] = move_i;
+					count_moves++;
+				}
+				else {
+					bool find_flag = false;
+					for (int i = cur_pos; i >= 18; i--) {
+						if (table.desk[i] > 0 && table.desk[i + table.dice[move_i]] >= 0 && (i + table.dice[move_i]) < 24) {
+							table.aviable_moves[count_moves][0] = i;
+							table.aviable_moves[count_moves][1] = i + table.dice[move_i];
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+							find_flag = 1;
+						}
+					}
+					if (!find_flag) {
+						int far_cell = -1;
+						for (int i = 23; i >= 18; i--) {
+							if (table.desk[i] > 0) {
+								far_cell = i;
+								break;
+							}
+						}
+						if (far_cell != -1) {
+							table.aviable_moves[count_moves][0] = far_cell;
+							table.aviable_moves[count_moves][1] = -1;
+							table.aviable_moves[count_moves][2] = move_i;
+							count_moves++;
+						}
 					}
 				}
 			}
@@ -127,19 +168,24 @@ int all_moves() {
 }
 
 void make_move(int n) {
-	table.desk[table.aviable_moves[n - 1][0]] -= table.cur_player == WHITE ? 1 : -1;
-	table.desk[table.aviable_moves[n - 1][1]] += table.cur_player == WHITE ? 1 : -1;
-	if (table.dice[0] != table.dice[1])
-		table.used_dice[table.aviable_moves[n - 1][2]] = true;
-	if ((table.cur_player == WHITE && table.aviable_moves[n - 1][0] == 0) || (table.cur_player == BLACK && table.aviable_moves[n - 1][0] == 12)) {
-		if (table.cur_player == WHITE && table.first_move_w && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
-			table.first_move_w = false;
-		}
-		else if (table.cur_player == BLACK && table.first_move_b && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
-			table.first_move_b = false;
-		}
-		else {
-			table.head_used = true;
+	if (table.aviable_moves[n - 1][1] == -1) {
+		table.desk[table.aviable_moves[n - 1][0]] -= table.cur_player == WHITE ? 1 : -1;
+	}
+	else {
+		table.desk[table.aviable_moves[n - 1][0]] -= table.cur_player == WHITE ? 1 : -1;
+		table.desk[table.aviable_moves[n - 1][1]] += table.cur_player == WHITE ? 1 : -1;
+		if (table.dice[0] != table.dice[1])
+			table.used_dice[table.aviable_moves[n - 1][2]] = true;
+		if ((table.cur_player == WHITE && table.aviable_moves[n - 1][0] == 0) || (table.cur_player == BLACK && table.aviable_moves[n - 1][0] == 12)) {
+			if (table.cur_player == WHITE && table.first_move_w && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
+				table.first_move_w = false;
+			}
+			else if (table.cur_player == BLACK && table.first_move_b && (table.dice[0] == table.dice[1] && (table.dice[0] == 3 || table.dice[0] == 4 || table.dice[0] == 6))) {
+				table.first_move_b = false;
+			}
+			else {
+				table.head_used = true;
+			}
 		}
 	}
 }
